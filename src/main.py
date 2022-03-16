@@ -8,7 +8,7 @@ import jwt
 from util import data_ops
 from util.logger import get_logger_for_module
 from util.jwk_to_pem import convert_to_rsa_public_key
-from api.jwt_issuer import fetch_well_known_jwks_from_token_issuer
+from src.api.jwt_issuer import fetch_well_known_jwks_from_token_issuer
 
 
 _LOG_LEVEL = getenv('LOG_LEVEL', 'info')
@@ -522,7 +522,7 @@ def _check_jwt_token_structure_valid(jwt_token: str) -> dict:
     _separating_char = '.'
     required_no_of_sections = 3
 
-    _invalid_status_text = f'token must contain {required_no_of_sections} sections separated by {_separating_char}'
+    _invalid_status_text = f'token must contain {required_no_of_sections} sections separated by "{_separating_char}"'
 
     if _separating_char not in jwt_token:
         response_data['message'] += f' ({_invalid_status_text})'
