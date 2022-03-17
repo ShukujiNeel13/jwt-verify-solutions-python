@@ -15,6 +15,31 @@ _LOG_LEVEL = getenv('LOG_LEVEL', 'info')
 LOG = get_logger_for_module(__name__, _LOG_LEVEL)
 
 
+# region response message template tags
+response_message_template_tag_step_number = '<sno>'
+response_message_template_tag_step_name = '<sname>'
+response_message_template_tag_step_status = '<sstatus>'
+response_message_template_tag_step_message = '<smessage>'
+# endregion
+
+
+def _get_response_message_template() -> str:
+    """
+    Returns a freshly created copy of the desired response message template
+
+    :return:
+    """
+
+    return f'Step {response_message_template_tag_step_number}.' \
+           f' ({response_message_template_tag_step_name})' \
+           f' {response_message_template_tag_step_status}' \
+           f' ({response_message_template_tag_step_message})'
+
+
+def _create_response_message() -> str:
+    ...
+
+
 def verify_signed_access_token(token: str, scope: str = None) -> dict:
     """
     Verify the given signed JWT access token JWS token
@@ -31,19 +56,25 @@ def verify_signed_access_token(token: str, scope: str = None) -> dict:
         'message': 'default'
     }
 
+    _step_number = 1
+    _step_name = 'step'
+
     # region 1. Ensure structure of JWT token valid, extract token sections
-    _check_structure_resp = _check_jwt_token_structure_valid(token)
-    structure_valid = _check_structure_resp['status']
-    check_structure_message = _check_structure_resp['message']
+    _verify_structure_response = _verify_token_structure(token)
+    structure_valid = _verify_structure_response['status']
+    check_structure_message = _verify_structure_response['message']
+    step_name = _verify_structure_response['message']
 
     if structure_valid is False:
         response_data['code'] = 'JWT_STRUCTURE_INVALID'
-        response_data['message'] = f'Step 1 failed. {check_structure_message}'
+        response_message = _get_response_message_template()
+        response_message
+        response_data['message'] = f'{_step_number} {step_name} failed. {check_structure_message}'
         return response_data
 
     LOG.debug(check_structure_message)
 
-    token_sections_by_name = _check_structure_resp['token_sections_by_name']
+    token_sections_by_name = _verify_structure_response['token_sections_by_name']
     LOG.debug(f'Extracted desired sections from token: {set(token_sections_by_name.keys())}')
     # endregion
 
@@ -57,7 +88,7 @@ def verify_signed_access_token(token: str, scope: str = None) -> dict:
     deserialize_token_payload_message = _deserialize_token_payload_response['data']
     if token_payload_data is None:
         response_data['code'] = _deserialize_token_payload_response['code']
-        response_data['message'] = deserialize_token_payload_message
+        response_data['message'] = f'Step 2 failed. {deserialize_token_payload_message}'
         return response_data
     LOG.debug(deserialize_token_payload_message)
     # endregion
@@ -75,7 +106,7 @@ def verify_signed_access_token(token: str, scope: str = None) -> dict:
     if token_payload_claims_correct is False:
         LOG.warning(_verify_token_payload_claims_message)
         response_data['code'] = _verify_token_payload_claims_response['code']
-        response_data['message'] = _verify_token_payload_claims_message
+        response_data['message'] = f'Step 3 failed. {_verify_token_payload_claims_message}'
         return response_data
 
     LOG.debug(_verify_token_payload_claims_message)
@@ -91,7 +122,7 @@ def verify_signed_access_token(token: str, scope: str = None) -> dict:
     deserialize_token_header_message = _deserialize_token_header_response['data']
     if token_header_data is None:
         response_data['code'] = _deserialize_token_header_response['code']
-        response_data['message'] = deserialize_token_header_message
+        response_data['message'] = f'Step 4 failed. {deserialize_token_header_message}'
         return response_data
     LOG.debug(deserialize_token_header_message)
     # endregion
@@ -510,13 +541,13 @@ def verify_jwt_using_public_key(jwt_token: str, decoded_token_payload: dict, alg
     return response_data
 
 
-def _check_jwt_token_structure_valid(jwt_token: str) -> dict:
+def _verify_token_structure(jwt_token: str) -> dict:
 
     response_data = {
         'status': False,
         'message': 'Structure invalid',
         'token_sections_by_name': None,
-        'jwtVerifyStepNumber': 1
+        'step_name': 'verify token structure'
     }
 
     _separating_char = '.'

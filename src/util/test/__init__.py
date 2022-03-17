@@ -1,5 +1,5 @@
-from util.jwk_to_pem import convert_to_rsa_public_key
-from util.test import jwk_pem_data
+from src.util.jwk_to_pem import convert_to_rsa_public_key
+from src.util.test import jwk_pem_data
 
 # TODO: Add tests for logging and type_check modules
 

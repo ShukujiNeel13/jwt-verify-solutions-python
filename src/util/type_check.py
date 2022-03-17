@@ -1,4 +1,4 @@
-import definitions
+from src import definitions
 
 # region Data Definition: Checker functions
 _MODEL_CHECKER_DATA_RETURN = definitions.CHECKER_MODEL_DATA_RETURN

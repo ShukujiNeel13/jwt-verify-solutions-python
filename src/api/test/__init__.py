@@ -66,7 +66,7 @@ def test_jwt_issuer_get_well_known_jwks() -> None or AssertionError:
 
     api_request_name = f'{_api_name}/{_request_name}'
 
-    from api.jwt_issuer import fetch_well_known_jwks_from_token_issuer
+    from src.api.jwt_issuer import fetch_well_known_jwks_from_token_issuer
 
     response = fetch_well_known_jwks_from_token_issuer(_request_name)
     print(f'Test complete, response is: {pformat(response)}')
