@@ -21,6 +21,7 @@ def ensure_required_environment_variables_found():
 ensure_required_environment_variables_found()
 
 
+# TODO: Handle exceptions on making request
 def fetch_well_known_jwks_from_token_issuer(request_name: str) -> dict:
 
     response_data = {
@@ -49,43 +50,56 @@ def fetch_well_known_jwks_from_token_issuer(request_name: str) -> dict:
     request_headers = {
         'Content-Type': 'application/json'
     }
-
-    response = requests.get(
-        url=request_url,
-        headers=request_headers
-    )
-
-    response_status_code = response.status_code
-    status_code_message = f'response status code is: {response_status_code}'
-
-    if response_status_code != 200:
-        response_reason = response.reason
-        response_data['message'] = f'{request_name} failed ({status_code_message})'
-        response_data['code'] = response_reason
-        return response_data
-
-    LOG.debug(f'{request_name} complete!')
-    LOG.debug(status_code_message)
-
     try:
-        response_json = response.json()
+        response = requests.get(
+            url=request_url,
+            headers=request_headers
+        )
     except Exception as err:
         _err_type = type(err).__name__
         _err_text = str(err)
+
         response_data['code'] = _err_type
-        _status_message = f'Response data does not have a valid JSON ({_err_text})'
-        response_data['message'] = _status_message
-        LOG.warning(_status_message)
+        response_data['message'] = f'{request_name} failed'
+
+        if _err_type == 'ConnectionError':
+            response_data['message'] += ' (service not available or URL incorrect)'
+        elif _err_type == 'MissingSchema':
+            response_data['message'] += ' (URL is invalid, maybe the protocol part is missing)'
+        else:
+            response_data['message'] += f' ({_err_text})'
+    else:
+        response_status_code = response.status_code
+        status_code_message = f'response status code is: {response_status_code}'
+
+        if response_status_code != 200:
+            response_reason = response.reason
+            response_data['message'] = f'{request_name} failed ({status_code_message})'
+            response_data['code'] = response_reason
+            return response_data
+
+        LOG.debug(f'{request_name} complete!')
+        LOG.debug(status_code_message)
+
+        try:
+            response_json = response.json()
+        except Exception as err:
+            _err_type = type(err).__name__
+            _err_text = str(err)
+            response_data['code'] = _err_type
+            _status_message = f'Response data does not have a valid JSON ({_err_text})'
+            response_data['message'] = _status_message
+            LOG.warning(_status_message)
+            return response_data
+
+        response_data['code'] = 'SUCCESS'
+        response_data['data'] = response_json
+        _status_text = f'Successfully obtained desired data from {request_name}'
+        response_data['message'] = _status_text
+
+        LOG.info(_status_text)
+
         return response_data
-
-    response_data['code'] = 'SUCCESS'
-    response_data['data'] = response_json
-    _status_text = f'Successfully obtained desired data from {request_name}'
-    response_data['message'] = _status_text
-
-    LOG.info(_status_text)
-
-    return response_data
 
 
 def _get_token_issuer_url() -> dict:
